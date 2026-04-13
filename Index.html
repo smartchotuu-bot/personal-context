@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quartz | Personal Dashboard</title>
+    <meta name="description" content="Personal dashboard with banks, khata, diary, and family — powered by Firebase.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --quartz-white: rgba(255,255,255,0.04);
+            --quartz-border: rgba(255,255,255,0.08);
+            --accent-cyan: #22d3ee;
+            --accent-magenta: #f472b6;
+            --accent-violet: #8b5cf6;
+            --accent-green: #10b981;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(34,211,238,0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139,92,246,0.05) 0%, transparent 40%);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NAV ── */
+        .nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(3,7,18,0.92);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--quartz-border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 32px;
+        }
+
+        .nav-left { display: flex; align-items: center; gap: 12px; }
+
+        .sync-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+            transition: all 0.4s ease;
+        }
+        .sync-dot.offline { background: var(--accent-magenta); box-shadow: 0 0 8px var(--accent-magenta); }
+
+        .nav-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700; font-size: 22px;
+            background: linear-gradient(to right, #fff, var(--text-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .nav-tabs {
+            display: flex; gap: 4px;
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 12px; padding: 4px;
+        }
+
+        .nav-tab {
+            padding: 8px 22px; border-radius: 9px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            color: var(--text-secondary); border: none; background: transparent;
+            font-family: 'Inter', sans-serif; transition: all 0.2s ease;
+        }
+        .nav-tab.active { background: rgba(34,211,238,0.15); color: var(--accent-cyan); border: 1px solid rgba(34,211,238,0.3); }
+        .nav-tab:hover:not(.active) { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+
+        /* ── MAIN ── */
+        .main { padding: 96px 32px 60px; max-width: 1200px; margin: 0 auto; }
+
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.35s ease; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 24px; padding: 28px;
+            backdrop-filter: blur(12px);
+            transition: all 0.4s ease;
+            position: relative; overflow: hidden;
+        }
+        .card:hover { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); }
+
+        /* ── GRIDS ── */
+        .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+        .grid-auto { display: grid; grid-template-columns: repeat(auto-fill,minmax(270px,1fr)); gap: 20px; }
+
+        /* ── SECTION HEADER ── */
+        .sh {
+            display: flex; align-items: center; gap: 12px;
+            margin: 40px 0 18px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px; text-transform: uppercase;
+            letter-spacing: 0.18em; color: var(--text-secondary);
+        }
+        .sh::after { content: ''; height: 1px; flex-grow: 1; background: linear-gradient(to right,var(--quartz-border),transparent); }
+
+        /* ── TYPOGRAPHY ── */
+        .val-xl { font-family: 'Space Grotesk',sans-serif; font-size: 38px; font-weight: 700; letter-spacing: -0.04em; }
+        .val-lg  { font-family: 'Space Grotesk',sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; }
+        .label   { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 22px; border-radius: 12px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            border: 1px solid var(--quartz-border);
+            background: rgba(255,255,255,0.05); color: #fff;
+            transition: all 0.2s ease; font-family: 'Inter',sans-serif;
+        }
+        .btn:hover { transform: translateY(-1px); border-color: var(--accent-cyan); background: rgba(34,211,238,0.1); }
+        .btn-sm   { padding: 7px 14px; font-size: 12px; border-radius: 9px; }
+        .btn-cyan { border-color: rgba(34,211,238,0.35); color: var(--accent-cyan); background: rgba(34,211,238,0.08); }
+        .btn-cyan:hover { background: rgba(34,211,238,0.2); border-color: var(--accent-cyan); }
+        .btn-red  { border-color: rgba(244,114,182,0.3); color: var(--accent-magenta); background: rgba(244,114,182,0.08); }
+        .btn-red:hover  { background: rgba(244,114,182,0.2); }
+        .btn-green{ border-color: rgba(16,185,129,0.3); color: var(--accent-green); background: rgba(16,185,129,0.08); }
+        .btn-green:hover{ background: rgba(16,185,129,0.2); }
+        .btn-full { width: 100%; justify-content: center; }
+
+        /* ── INPUTS ── */
+        input, textarea, select {
+            width: 100%;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid var(--quartz-border);
+            padding: 13px 16px; border-radius: 12px;
+            color: #fff; font-size: 14px;
+            font-family: 'Inter',sans-serif;
+            transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none; border-color: var(--accent-violet);
+            background: rgba(0,0,0,0.5);
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
+        }
+        select option { background: #111827; color: #fff; }
+        textarea { resize: vertical; }
+
+        .fg { margin-bottom: 14px; }
+        .fg label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ── DIVIDER ── */
+        .divider { height: 1px; background: var(--quartz-border); margin: 22px 0; }
+
+        /* ── DASHBOARD HERO ── */
+        .hero {
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 24px; padding: 34px;
+            backdrop-filter: blur(24px);
+            position: relative; overflow: hidden;
+            animation: slideDown 0.7s cubic-bezier(0.16,1,0.3,1);
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top:-50%; left:-50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg,transparent,rgba(34,211,238,0.025),transparent);
+            transform: rotate(30deg); pointer-events: none;
+        }
+        .hero-greeting { font-size: 13px; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 4px; }
+        .hero-name {
+            font-family: 'Space Grotesk',sans-serif; font-size: 38px; font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(to right,#fff,var(--text-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-meta { display: flex; gap: 32px; margin-top: 22px; flex-wrap: wrap; }
+        .hero-stat-val { font-family: 'Space Grotesk',sans-serif; font-size: 20px; font-weight: 700; }
+
+        /* ── BANK CARDS ── */
+        .bank-card {
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 20px; padding: 26px;
+            backdrop-filter: blur(12px);
+            position: relative; overflow: hidden;
+            transition: all 0.35s ease;
+        }
+        .bank-card::before {
+            content: '';
+            position: absolute; top:0; left:0; right:0; height: 3px;
+            background: linear-gradient(to right,var(--accent-cyan),var(--accent-violet));
+        }
+        .bank-card:hover { transform: translateY(-5px); border-color: rgba(34,211,238,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+
+        .bank-head { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+        .bank-icon {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg,rgba(34,211,238,0.2),rgba(139,92,246,0.2));
+            border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 17px;
+        }
+        .bank-n { font-family: 'Space Grotesk',sans-serif; font-size: 17px; font-weight: 600; }
+        .bank-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .bank-lbl { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+        .bank-bal { font-family: 'Space Grotesk',sans-serif; font-size: 22px; font-weight: 700; color: var(--accent-cyan); }
+        .bank-due { font-family: 'Space Grotesk',sans-serif; font-size: 22px; font-weight: 700; color: var(--accent-magenta); }
+
+        /* ── DIARY ── */
+        .diary-entry {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--quartz-border);
+            border-radius: 16px; padding: 18px 22px;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+            animation: fadeIn 0.4s ease;
+        }
+        .de-date  { font-size: 11px; color: var(--text-secondary); margin-bottom: 7px; }
+        .de-note  { font-size: 14px; line-height: 1.6; color: var(--text-primary); }
+
+        /* ── KHATA ── */
+        .kh-badge { padding: 3px 11px; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .kh-gave     { background: rgba(244,114,182,0.15); color: var(--accent-magenta); }
+        .kh-received { background: rgba(16,185,129,0.15);  color: var(--accent-green); }
+
+        /* ── FAMILY CARD ── */
+        .fc {
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 20px; padding: 24px;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+        .fc:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.14); }
+        .role-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 100px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            background: rgba(139,92,246,0.2); color: var(--accent-violet); margin-bottom: 14px;
+        }
+
+        /* ── SETTINGS CARDS ── */
+        .sc {
+            background: var(--quartz-white);
+            border: 1px solid var(--quartz-border);
+            border-radius: 24px; padding: 28px 30px;
+            backdrop-filter: blur(12px); margin-bottom: 20px;
+        }
+        .sc h3 {
+            font-family: 'Space Grotesk',sans-serif; font-size: 16px;
+            font-weight: 600; margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+        }
+
+        /* ── LIST ITEMS ── */
+        .li {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--quartz-border);
+            border-radius: 12px; margin-bottom: 10px; gap: 14px;
+        }
+        .li-info { flex: 1; }
+        .li-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .li-sub  { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+        .li-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.72); backdrop-filter: blur(10px);
+            z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+        .modal {
+            background: #0c1221; border: 1px solid var(--quartz-border);
+            border-radius: 24px; padding: 32px; width: 100%; max-width: 500px;
+            animation: slideUp 0.32s cubic-bezier(0.16,1,0.3,1);
+        }
+        .modal h3 { font-family: 'Space Grotesk',sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 28px; right: 28px;
+            background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+            color: var(--accent-green); padding: 13px 22px; border-radius: 12px;
+            font-weight: 600; font-size: 14px; z-index: 9999;
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.err  { background: rgba(244,114,182,0.15); border-color: rgba(244,114,182,0.3); color: var(--accent-magenta); }
+
+        /* ── STATES ── */
+        .empty { text-align: center; padding: 36px; color: var(--text-secondary); font-size: 14px; }
+        .loading { text-align: center; padding: 50px; color: var(--text-secondary); }
+
+        /* ── KHATA SUMMARY CARD ── */
+        .ksum {
+            background: var(--quartz-white); border: 1px solid var(--quartz-border);
+            border-radius: 18px; padding: 22px; backdrop-filter: blur(12px);
+        }
+        .ksum-name { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+        .ksum-nums { display: flex; gap: 22px; margin-bottom: 12px; }
+        .ksum-net  { font-size: 13px; font-weight: 600; }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes slideUp  { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideDown{ from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--quartz-border); border-radius: 10px; }
+
+        /* ── RESPONSIVE ── */
+        @media(max-width:768px) {
+            .main { padding: 88px 16px 50px; }
+            .grid-2,.grid-3 { grid-template-columns:1fr; }
+            .fr { grid-template-columns:1fr; }
+            .nav { padding: 14px 16px; }
+            .nav-tab { padding: 7px 14px; font-size: 13px; }
+            .hero { padding: 24px; }
+            .hero-name { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="nav">
+    <div class="nav-left">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span class="nav-logo">Quartz</span>
+    </div>
+    <div class="nav-tabs">
+        <button class="nav-tab active" id="tab-dashboard" onclick="switchView('dashboard')">📊 Dashboard</button>
+        <button class="nav-tab" id="tab-settings"  onclick="switchView('settings')">⚙ Settings</button>
+    </div>
+</nav>
+
+<div class="main">
+
+    <!-- ═══════════════ DASHBOARD VIEW ═══════════════ -->
+    <div class="view active" id="view-dashboard">
+
+        <!-- Hero -->
+        <div class="hero">
+            <div class="hero-greeting" id="d-greeting">Loading...</div>
+            <div class="hero-name"    id="d-name">—</div>
+            <div class="hero-meta">
+                <div>
+                    <div class="label">Total Balance</div>
+                    <div class="hero-stat-val" style="color:var(--accent-cyan)"    id="d-total-bal">₹0</div>
+                </div>
+                <div>
+                    <div class="label">Total Due</div>
+                    <div class="hero-stat-val" style="color:var(--accent-magenta)" id="d-total-due">₹0</div>
+                </div>
+                <div>
+                    <div class="label">Banks</div>
+                    <div class="hero-stat-val" style="color:var(--accent-violet)"  id="d-bank-cnt">0</div>
+                </div>
+                <div>
+                    <div class="label">Family</div>
+                    <div class="hero-stat-val" style="color:var(--accent-green)"   id="d-fam-cnt">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banks -->
+        <div class="sh">🏦 My Banks</div>
+        <div class="grid-auto" id="d-banks"><div class="loading">Loading banks…</div></div>
+
+        <!-- Khata -->
+        <div class="sh">📒 Khata Book</div>
+        <div id="d-khata"><div class="loading">Loading…</div></div>
+
+        <!-- Family -->
+        <div class="sh">👨‍👩‍👧 Family</div>
+        <div class="grid-auto" id="d-family"><div class="loading">Loading…</div></div>
+
+        <!-- Diary -->
+        <div class="sh">📓 Daily Diary</div>
+        <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;gap:12px;align-items:flex-end;">
+                <textarea id="d-diary-txt" rows="2" style="margin-bottom:0;border-radius:12px;flex:1;" placeholder="Log your thoughts for today…"></textarea>
+                <button class="btn btn-cyan" onclick="quickDiary()" style="height:50px;flex-shrink:0;">Save</button>
+            </div>
+        </div>
+        <div id="d-diary" style="display:flex;flex-direction:column;gap:12px;"><div class="loading">Loading…</div></div>
+
+        <!-- Context -->
+        <div class="sh">🪪 Personal Context</div>
+        <div class="card">
+            <ul id="d-context" style="list-style:none;display:flex;flex-direction:column;gap:10px;">
+                <li style="color:var(--text-secondary);font-size:14px;">Loading…</li>
+            </ul>
+        </div>
+
+    </div><!-- /dashboard -->
+
+
+    <!-- ═══════════════ SETTINGS VIEW ═══════════════ -->
+    <div class="view" id="view-settings">
+
+        <!-- Profile -->
+        <div class="sh">👤 Profile & Personal Context</div>
+        <div class="sc">
+            <h3>👤 My Profile</h3>
+            <div class="fr">
+                <div class="fg"><label>Your Name</label><input id="sp-name" type="text" placeholder="Enter your name"></div>
+                <div class="fg"><label>Date of Birth</label><input id="sp-dob" type="text" placeholder="DD/MM/YYYY"></div>
+            </div>
+            <div class="fg"><label>Phone</label><input id="sp-phone" type="text" placeholder="Phone number"></div>
+            <button class="btn btn-cyan" onclick="saveProfile()">💾 Save Profile</button>
+        </div>
+
+        <!-- Personal Context Points -->
+        <div class="sh">🪪 Personal Context Points</div>
+        <div class="sc">
+            <h3>🪪 Add Context Point</h3>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <input id="sp-ctx-input" type="text" placeholder="e.g. I am Rahul, age 19, from Jaipur…" style="flex:1;margin-bottom:0;" onkeydown="if(event.key==='Enter')addContextPoint()">
+                <button class="btn btn-cyan" onclick="addContextPoint()" style="flex-shrink:0;">➕ Add</button>
+            </div>
+            <div id="s-context-list"><div class="loading">Loading…</div></div>
+        </div>
+
+        <!-- Banks -->
+        <div class="sh">🏦 Banks</div>
+        <div class="sc">
+            <h3>🏦 Add New Bank</h3>
+            <div class="fr">
+                <div class="fg"><label>Bank Name</label><input id="sb-name" type="text" placeholder="e.g. SBI, HDFC, Paytm"></div>
+                <div class="fg"><label>Balance (₹)</label><input id="sb-bal" type="number" placeholder="0"></div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label>Due Amount (₹)</label><input id="sb-due" type="number" placeholder="0"></div>
+                <div></div>
+            </div>
+            <button class="btn btn-cyan" onclick="addBank()">➕ Add Bank</button>
+            <div class="divider"></div>
+            <div id="s-banks"><div class="loading">Loading…</div></div>
+        </div>
+
+        <!-- Family -->
+        <div class="sh">👨‍👩‍👧 Family Members</div>
+        <div class="sc">
+            <h3>👨‍👩‍👧 Add Family Member</h3>
+            <div class="fr">
+                <div class="fg"><label>Name</label><input id="sf-name" type="text" placeholder="Full name"></div>
+                <div class="fg"><label>Relation / Role</label><input id="sf-role" type="text" placeholder="Father, Mother, Wife…"></div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label>Date of Birth</label><input id="sf-dob" type="text" placeholder="DD/MM/YYYY"></div>
+                <div class="fg"><label>Phone</label><input id="sf-phone" type="text" placeholder="Phone number"></div>
+            </div>
+            <button class="btn btn-cyan" onclick="addFamily()">➕ Add Member</button>
+            <div class="divider"></div>
+            <div id="s-family"><div class="loading">Loading…</div></div>
+        </div>
+
+        <!-- Khata -->
+        <div class="sh">📒 Khata Book</div>
+        <div class="sc">
+            <h3>📒 Add Khata Entry</h3>
+            <div class="fr">
+                <div class="fg"><label>Person Name</label><input id="sk-person" type="text" placeholder="Name"></div>
+                <div class="fg"><label>Type</label>
+                    <select id="sk-type">
+                        <option value="gave">Gave (Maine diya)</option>
+                        <option value="received">Received (Maine liya)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label>Amount (₹)</label><input id="sk-amt" type="number" placeholder="0"></div>
+                <div class="fg"><label>Note</label><input id="sk-note" type="text" placeholder="Kisliye?"></div>
+            </div>
+            <button class="btn btn-cyan" onclick="addKhata()">➕ Add Entry</button>
+            <div class="divider"></div>
+            <div id="s-khata"><div class="loading">Loading…</div></div>
+        </div>
+
+        <!-- Diary -->
+        <div class="sh">📓 Diary Entries</div>
+        <div class="sc">
+            <h3>📓 All Entries</h3>
+            <div id="s-diary" style="display:flex;flex-direction:column;gap:10px;"><div class="loading">Loading…</div></div>
+        </div>
+
+    </div><!-- /settings -->
+
+</div><!-- /main -->
+
+
+<!-- ═════ MODAL: Edit Bank ═════ -->
+<div class="modal-overlay" id="m-bank">
+    <div class="modal">
+        <h3>✏️ Edit Bank</h3>
+        <input type="hidden" id="m-bank-id">
+        <div class="fg"><label>Bank Name</label><input id="m-bank-name" type="text" placeholder="Bank name"></div>
+        <div class="fg"><label>Balance (₹)</label><input id="m-bank-bal" type="number" placeholder="0"></div>
+        <div class="fg"><label>Due Amount (₹)</label><input id="m-bank-due" type="number" placeholder="0"></div>
+        <div class="modal-actions">
+            <button class="btn btn-cyan" style="flex:1" onclick="saveBank()">💾 Save</button>
+            <button class="btn btn-red" onclick="closeM('m-bank')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═════ MODAL: Edit Family ═════ -->
+<div class="modal-overlay" id="m-fam">
+    <div class="modal">
+        <h3>✏️ Edit Family Member</h3>
+        <input type="hidden" id="m-fam-id">
+        <div class="fg"><label>Name</label><input id="m-fam-name" type="text"></div>
+        <div class="fg"><label>Role / Relation</label><input id="m-fam-role" type="text"></div>
+        <div class="fg"><label>Date of Birth</label><input id="m-fam-dob" type="text"></div>
+        <div class="fg"><label>Phone</label><input id="m-fam-phone" type="text"></div>
+        <div class="modal-actions">
+            <button class="btn btn-cyan" style="flex:1" onclick="saveFam()">💾 Save</button>
+            <button class="btn btn-red" onclick="closeM('m-fam')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═════ MODAL: Edit Khata ═════ -->
+<div class="modal-overlay" id="m-khata">
+    <div class="modal">
+        <h3>✏️ Edit Khata Entry</h3>
+        <input type="hidden" id="m-khata-id">
+        <div class="fg"><label>Person</label><input id="m-khata-person" type="text"></div>
+        <div class="fg"><label>Type</label>
+            <select id="m-khata-type">
+                <option value="gave">Gave (Maine diya)</option>
+                <option value="received">Received (Maine liya)</option>
+            </select>
+        </div>
+        <div class="fg"><label>Amount (₹)</label><input id="m-khata-amt" type="number"></div>
+        <div class="fg"><label>Note</label><input id="m-khata-note" type="text"></div>
+        <div class="modal-actions">
+            <button class="btn btn-cyan" style="flex:1" onclick="saveKhata()">💾 Save</button>
+            <button class="btn btn-red" onclick="closeM('m-khata')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Saved!</div>
+
+<!-- ═════════════ FIREBASE ═════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+/* ─── Firebase Init ─── */
+firebase.initializeApp({
+    apiKey: "AIzaSyC0uVAIbnG8hXOBB96IEMxp4-93eontTKU",
+    authDomain: "tent-business.firebaseapp.com",
+    databaseURL: "https://tent-business-default-rtdb.firebaseio.com",
+    projectId: "tent-business",
+    storageBucket: "tent-business.firebasestorage.app",
+    messagingSenderId: "697823280451",
+    appId: "1:697823280451:web:f5a5bccbe6a4d6f0ea83f6"
+});
+const db  = firebase.database();
+const REF = db.ref('/personal');
+
+/* ─── State ─── */
+let S = {};
+
+/* ─── Realtime listener ─── */
+REF.on('value', snap => {
+    S = snap.val() || {};
+    renderAll();
+    document.getElementById('sync-dot').classList.remove('offline');
+}, () => document.getElementById('sync-dot').classList.add('offline'));
+
+/* ═══════════ VIEW SWITCH ═══════════ */
+function switchView(v) {
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-' + v).classList.add('active');
+    document.getElementById('tab-'  + v).classList.add('active');
+}
+
+/* ═══════════ RENDER ALL ═══════════ */
+function renderAll() {
+    renderHero();
+    renderDBanks();
+    renderDKhata();
+    renderDFamily();
+    renderDDiary();
+    renderDContext();
+    renderSBanks();
+    renderSFamily();
+    renderSKhata();
+    renderSDiary();
+    renderSContext();
+    fillProfile();
+}
+
+/* ═══════════ DASHBOARD ═══════════ */
+function renderHero() {
+    const p = S.profile || {};
+    const name = p.name || 'Your Dashboard';
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning ☀️' : hour < 17 ? 'Good afternoon 🌤' : 'Good evening 🌙';
+    document.getElementById('d-greeting').textContent = greet;
+    document.getElementById('d-name').textContent = name;
+
+    const banks  = obj2arr(S.banks);
+    const family = obj2arr(S.family);
+    const totBal = banks.reduce((a,b) => a + pf(b.balance), 0);
+    const totDue = banks.reduce((a,b) => a + pf(b.due),     0);
+
+    document.getElementById('d-total-bal').textContent = '₹' + fmt(totBal);
+    document.getElementById('d-total-due').textContent = '₹' + fmt(totDue);
+    document.getElementById('d-bank-cnt').textContent  = banks.length;
+    document.getElementById('d-fam-cnt').textContent   = family.length;
+}
+
+function renderDBanks() {
+    const el = document.getElementById('d-banks');
+    const banks = S.banks || {};
+    const keys  = Object.keys(banks);
+    if (!keys.length) { el.innerHTML = `<div class="empty">No banks added.<br>Go to ⚙ Settings to add banks.</div>`; return; }
+    el.innerHTML = keys.map(k => {
+        const b = banks[k];
+        return `<div class="bank-card">
+            <div class="bank-head">
+                <div class="bank-icon">🏦</div>
+                <div class="bank-n">${esc(b.name)}</div>
+            </div>
+            <div class="bank-stats">
+                <div>
+                    <div class="bank-lbl">Balance</div>
+                    <div class="bank-bal">₹${fmt(b.balance||0)}</div>
+                </div>
+                <div>
+                    <div class="bank-lbl">Due</div>
+                    <div class="bank-due">₹${fmt(b.due||0)}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderDKhata() {
+    const el = document.getElementById('d-khata');
+    const khata = S.khata || {};
+    const entries = Object.entries(khata);
+    if (!entries.length) { el.innerHTML = `<div class="empty">No khata entries. Add in ⚙ Settings.</div>`; return; }
+
+    // Group by person
+    const pm = {};
+    entries.forEach(([,e]) => {
+        if (!pm[e.person]) pm[e.person] = { gave:0, received:0 };
+        e.type === 'gave' ? pm[e.person].gave += pf(e.amount) : pm[e.person].received += pf(e.amount);
+    });
+
+    el.innerHTML = `<div class="grid-auto">` + Object.entries(pm).map(([person, d]) => {
+        const net = d.received - d.gave;
+        const col = net >= 0 ? 'var(--accent-green)' : 'var(--accent-magenta)';
+        const lbl = net >= 0 ? '↑ Tu lega' : '↓ Tu dega';
+        return `<div class="ksum">
+            <div class="ksum-name">${esc(person)}</div>
+            <div class="ksum-nums">
+                <div>
+                    <div class="label">Diya</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;color:var(--accent-magenta)">₹${fmt(d.gave)}</div>
+                </div>
+                <div>
+                    <div class="label">Liya</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;color:var(--accent-green)">₹${fmt(d.received)}</div>
+                </div>
+            </div>
+            <div class="ksum-net" style="color:${col}">${lbl}: ₹${fmt(Math.abs(net))}</div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+function renderDFamily() {
+    const el = document.getElementById('d-family');
+    const fam = S.family || {};
+    const keys = Object.keys(fam);
+    if (!keys.length) { el.innerHTML = `<div class="empty">No family members. Add in ⚙ Settings.</div>`; return; }
+    el.innerHTML = keys.map(k => {
+        const m = fam[k];
+        return `<div class="fc">
+            <span class="role-badge">${esc(m.role||'Member')}</span>
+            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">${esc(m.name||'')}</div>
+            ${m.dob   ? `<div style="font-size:12px;color:var(--text-secondary)">🎂 ${esc(m.dob)}</div>` : ''}
+            ${m.phone ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">📞 ${esc(m.phone)}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function renderDDiary() {
+    const el = document.getElementById('d-diary');
+    const diary = S.diary || {};
+    const sorted = Object.entries(diary).sort((a,b) => b[1].ts - a[1].ts).slice(0, 10);
+    if (!sorted.length) { el.innerHTML = `<div class="empty">No diary entries yet. Write something above!</div>`; return; }
+    el.innerHTML = sorted.map(([,e]) => `
+        <div class="diary-entry">
+            <div>
+                <div class="de-date">${e.date}</div>
+                <div class="de-note">${esc(e.note)}</div>
+            </div>
+        </div>`).join('');
+}
+
+function renderDContext() {
+    const el  = document.getElementById('d-context');
+    const pts = S.contextPoints || {};
+    const keys = Object.keys(pts);
+    if (!keys.length) {
+        el.innerHTML = `<li style="color:var(--text-secondary);font-size:14px;font-style:italic;opacity:0.5">No context points yet. Go to ⚙ Settings → Personal Context.</li>`;
+        return;
+    }
+    el.innerHTML = keys.map(k => `
+        <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:var(--accent-violet);font-size:16px;line-height:1.4;flex-shrink:0;">◆</span>
+            <span style="font-size:14px;line-height:1.6;color:var(--text-primary);">${esc(pts[k].text)}</span>
+        </li>`).join('');
+}
+
+function renderSContext() {
+    const el  = document.getElementById('s-context-list');
+    const pts = S.contextPoints || {};
+    const keys = Object.keys(pts);
+    if (!keys.length) { el.innerHTML = `<div class="empty">No points added yet.</div>`; return; }
+    el.innerHTML = keys.map(k => `
+        <div class="li">
+            <div class="li-info">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="color:var(--accent-violet);font-size:14px;">◆</span>
+                    <span class="li-name" style="font-weight:400;font-size:14px;">${esc(pts[k].text)}</span>
+                </div>
+            </div>
+            <div class="li-actions">
+                <button class="btn btn-sm btn-red" onclick="delContextPoint('${k}')">Delete</button>
+            </div>
+        </div>`).join('');
+}
+
+/* ═══════════ SETTINGS RENDER ═══════════ */
+function fillProfile() {
+    const p = S.profile || {};
+    sv('sp-name',  p.name  || '');
+    sv('sp-dob',   p.dob   || '');
+    sv('sp-phone', p.phone || '');
+}
+
+function renderSBanks() {
+    const el   = document.getElementById('s-banks');
+    const banks = S.banks || {};
+    const keys  = Object.keys(banks);
+    if (!keys.length) { el.innerHTML = `<div class="empty">No banks added yet.</div>`; return; }
+    el.innerHTML = keys.map(k => {
+        const b = banks[k];
+        return `<div class="li">
+            <div class="li-info">
+                <div class="li-name">🏦 ${esc(b.name)}</div>
+                <div class="li-sub">Balance: ₹${fmt(b.balance||0)} &nbsp;|&nbsp; Due: ₹${fmt(b.due||0)}</div>
+            </div>
+            <div class="li-actions">
+                <button class="btn btn-sm btn-cyan" onclick="openBank('${k}')">Edit</button>
+                <button class="btn btn-sm btn-red"  onclick="delBank('${k}')">Delete</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderSFamily() {
+    const el  = document.getElementById('s-family');
+    const fam = S.family || {};
+    const keys = Object.keys(fam);
+    if (!keys.length) { el.innerHTML = `<div class="empty">No family members yet.</div>`; return; }
+    el.innerHTML = keys.map(k => {
+        const m = fam[k];
+        return `<div class="li">
+            <div class="li-info">
+                <div class="li-name">${esc(m.name||'')} <span class="role-badge" style="margin:0 8px;vertical-align:middle">${esc(m.role||'')}</span></div>
+                <div class="li-sub">${m.dob?'🎂 '+esc(m.dob):''} ${m.phone?'&nbsp;📞 '+esc(m.phone):''}</div>
+            </div>
+            <div class="li-actions">
+                <button class="btn btn-sm btn-cyan" onclick="openFam('${k}')">Edit</button>
+                <button class="btn btn-sm btn-red"  onclick="delFam('${k}')">Delete</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderSKhata() {
+    const el = document.getElementById('s-khata');
+    const kh = S.khata || {};
+    const entries = Object.entries(kh).sort((a,b) => b[1].ts - a[1].ts);
+    if (!entries.length) { el.innerHTML = `<div class="empty">No khata entries yet.</div>`; return; }
+    el.innerHTML = entries.map(([k,e]) => `
+        <div class="li">
+            <div class="li-info">
+                <div class="li-name">${esc(e.person)} <span class="kh-badge kh-${e.type}" style="margin-left:8px;vertical-align:middle">${e.type==='gave'?'Diya':'Liya'}</span></div>
+                <div class="li-sub">₹${fmt(e.amount||0)} ${e.note?'— '+esc(e.note):''} ${e.date?'| '+e.date:''}</div>
+            </div>
+            <div class="li-actions">
+                <button class="btn btn-sm btn-cyan" onclick="openKhata('${k}')">Edit</button>
+                <button class="btn btn-sm btn-red"  onclick="delKhata('${k}')">Delete</button>
+            </div>
+        </div>`).join('');
+}
+
+function renderSDiary() {
+    const el = document.getElementById('s-diary');
+    const diary = S.diary || {};
+    const entries = Object.entries(diary).sort((a,b) => b[1].ts - a[1].ts);
+    if (!entries.length) { el.innerHTML = `<div class="empty">No diary entries.</div>`; return; }
+    el.innerHTML = entries.map(([k,e]) => `
+        <div class="diary-entry">
+            <div style="flex:1">
+                <div class="de-date">${e.date}</div>
+                <div class="de-note">${esc(e.note)}</div>
+            </div>
+            <button class="btn btn-sm btn-red" onclick="delDiary('${k}')">Delete</button>
+        </div>`).join('');
+}
+
+/* ═══════════ CRUD: PROFILE ═══════════ */
+function saveProfile() {
+    const cur = S.profile || {};
+    REF.child('profile').set({
+        name:  gv('sp-name')  || cur.name  || '',
+        dob:   gv('sp-dob')   || cur.dob   || '',
+        phone: gv('sp-phone') || cur.phone || ''
+    }).then(() => toast('Profile saved! ✅'));
+}
+
+function addContextPoint() {
+    const txt = gv('sp-ctx-input').trim();
+    if (!txt) return toast('Enter a point first', true);
+    REF.child('contextPoints').push({ text: txt, ts: Date.now() })
+        .then(() => { sv('sp-ctx-input', ''); toast('Point added! ◆'); });
+}
+
+function delContextPoint(id) {
+    if (!confirm('Delete this point?')) return;
+    REF.child('contextPoints/' + id).remove().then(() => toast('Point deleted!'));
+}
+
+/* ═══════════ CRUD: BANKS ═══════════ */
+function addBank() {
+    const name = gv('sb-name');
+    if (!name) return toast('Bank name required', true);
+    REF.child('banks').push({
+        name,
+        balance: pf(gv('sb-bal')),
+        due:     pf(gv('sb-due'))
+    }).then(() => { clr(['sb-name','sb-bal','sb-due']); toast('Bank added! 🏦'); });
+}
+
+function openBank(id) {
+    const b = (S.banks||{})[id]||{};
+    sv('m-bank-id',  id);
+    sv('m-bank-name', b.name    || '');
+    sv('m-bank-bal',  b.balance || 0);
+    sv('m-bank-due',  b.due     || 0);
+    openM('m-bank');
+}
+
+function saveBank() {
+    const id = gv('m-bank-id');
+    REF.child('banks/'+id).set({
+        name:    gv('m-bank-name'),
+        balance: pf(gv('m-bank-bal')),
+        due:     pf(gv('m-bank-due'))
+    }).then(() => { closeM('m-bank'); toast('Bank updated! ✅'); });
+}
+
+function delBank(id) {
+    if (!confirm('Delete this bank?')) return;
+    REF.child('banks/'+id).remove().then(() => toast('Bank deleted!'));
+}
+
+/* ═══════════ CRUD: FAMILY ═══════════ */
+function addFamily() {
+    const name = gv('sf-name');
+    if (!name) return toast('Name required', true);
+    REF.child('family').push({
+        name, role: gv('sf-role'), dob: gv('sf-dob'), phone: gv('sf-phone')
+    }).then(() => { clr(['sf-name','sf-role','sf-dob','sf-phone']); toast('Member added! 👨‍👩‍👧'); });
+}
+
+function openFam(id) {
+    const m = (S.family||{})[id]||{};
+    sv('m-fam-id',    id);
+    sv('m-fam-name',  m.name  || '');
+    sv('m-fam-role',  m.role  || '');
+    sv('m-fam-dob',   m.dob   || '');
+    sv('m-fam-phone', m.phone || '');
+    openM('m-fam');
+}
+
+function saveFam() {
+    const id = gv('m-fam-id');
+    REF.child('family/'+id).set({
+        name: gv('m-fam-name'), role: gv('m-fam-role'),
+        dob:  gv('m-fam-dob'),  phone: gv('m-fam-phone')
+    }).then(() => { closeM('m-fam'); toast('Member updated! ✅'); });
+}
+
+function delFam(id) {
+    if (!confirm('Remove this family member?')) return;
+    REF.child('family/'+id).remove().then(() => toast('Removed!'));
+}
+
+/* ═══════════ CRUD: KHATA ═══════════ */
+function addKhata() {
+    const person = gv('sk-person');
+    const amount = pf(gv('sk-amt'));
+    if (!person || !amount) return toast('Person and amount required', true);
+    REF.child('khata').push({
+        person,
+        type:   gv('sk-type'),
+        amount,
+        note:   gv('sk-note'),
+        date:   new Date().toLocaleDateString('en-IN'),
+        ts:     Date.now()
+    }).then(() => { clr(['sk-person','sk-amt','sk-note']); toast('Khata entry added! 📒'); });
+}
+
+function openKhata(id) {
+    const e = (S.khata||{})[id]||{};
+    sv('m-khata-id',     id);
+    sv('m-khata-person', e.person || '');
+    document.getElementById('m-khata-type').value = e.type || 'gave';
+    sv('m-khata-amt',    e.amount || 0);
+    sv('m-khata-note',   e.note   || '');
+    openM('m-khata');
+}
+
+function saveKhata() {
+    const id  = gv('m-khata-id');
+    const old = (S.khata||{})[id]||{};
+    REF.child('khata/'+id).set({
+        person: gv('m-khata-person'),
+        type:   document.getElementById('m-khata-type').value,
+        amount: pf(gv('m-khata-amt')),
+        note:   gv('m-khata-note'),
+        date:   old.date || new Date().toLocaleDateString('en-IN'),
+        ts:     old.ts   || Date.now()
+    }).then(() => { closeM('m-khata'); toast('Khata updated! ✅'); });
+}
+
+function delKhata(id) {
+    if (!confirm('Delete this khata entry?')) return;
+    REF.child('khata/'+id).remove().then(() => toast('Entry deleted!'));
+}
+
+/* ═══════════ CRUD: DIARY ═══════════ */
+function quickDiary() {
+    const el   = document.getElementById('d-diary-txt');
+    const note = el.value.trim();
+    if (!note) return;
+    REF.child('diary').push({
+        note,
+        date: new Date().toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+        ts:   Date.now()
+    }).then(() => { el.value = ''; toast('Diary saved! 📓'); });
+}
+
+function delDiary(id) {
+    if (!confirm('Delete this diary entry?')) return;
+    REF.child('diary/'+id).remove().then(() => toast('Deleted!'));
+}
+
+/* ═══════════ MODALS ═══════════ */
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeM(el.id); });
+});
+
+/* ═══════════ TOAST ═══════════ */
+let _tt;
+function toast(msg, isErr = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (isErr ? ' err' : '');
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(_tt);
+    _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ═══════════ HELPERS ═══════════ */
+const fmt = n => parseFloat(n||0).toLocaleString('en-IN', {maximumFractionDigits:2});
+const pf  = v => parseFloat(v) || 0;
+const esc = s => {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+};
+const gv  = id => (document.getElementById(id)||{}).value || '';
+const sv  = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+const clr = ids => ids.forEach(id => sv(id, ''));
+const obj2arr = o => o ? Object.values(o) : [];
+</script>
+</body>
+</html>
